@@ -1,0 +1,87 @@
+html {
+  background: #f5f4f4;
+  font-size: 16px;
+}
+.leaflet-routing-alternatives-container {
+  display: none !important;
+}
+.slick-slide {
+  max-height: 430px !important;
+}
+
+.slick-slide > div {
+  height: 90%;
+}
+
+.slick-cloned {
+  height: 700px !important;
+}
+.slick-slide {
+  flex: 1 0 auto !important;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #000;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.chart-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-container canvas {
+  max-width: 60% !important; /* Giới hạn biểu đồ */
+}
+
+.chart-container .chart-legend {
+  max-width: 100% !important; /* Giới hạn legend */
+}
+
+/* loading */
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -35px;
+  }
+  100% {
+    stroke-dashoffset: -125px;
+  }
+}
+
+.animate-rotate {
+  transform-origin: center;
+  animation: rotate 2s linear infinite;
+}
+
+.animate-dash {
+  stroke: hsl(214, 97%, 59%);
+  stroke-dasharray: 1, 200;
+  stroke-dashoffset: 0;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+.stroke-primary {
+  stroke: hsl(214, 97%, 59%);
+}
