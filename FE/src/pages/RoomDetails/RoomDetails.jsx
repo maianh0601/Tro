@@ -143,7 +143,15 @@ function RoomDetails() {
         setAnh(galleryImages);
         setThietbi(roomData?.thietBi);
         const result = roomData.mapDetail;
-        setToado([result.latitude, result.longitude]);
+        if (
+          result &&
+          typeof result.latitude === "number" &&
+          typeof result.longitude === "number"
+        ) {
+          setToado([result.latitude, result.longitude]);
+        } else {
+          setToado(null);
+        }
         const status = roomData.trang_thai;
         const statusInfo = statusMapping[status] || {
           text: "Trạng thái không xác định",

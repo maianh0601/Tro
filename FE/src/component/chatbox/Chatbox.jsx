@@ -34,12 +34,23 @@ const Chatbox = () => {
   };
 
   useEffect(() => {
+    if (!user) {
+      setMessages([]);
+      setNumberMess(0);
+      if (socket) {
+        socket.off("nhan_tin_nhan_admin");
+        setSocket(null);
+      }
+      return;
+    }
+
     fetchMessages();
     fetchNotifMess();
+
     const s = connectSocket();
     setSocket(s);
 
-    s.on("nhan_tin_nhan_admin", async (data) => {
+    const messageListener = async (data) => {
       setMessages((prevMessages) => [...prevMessages, data.payload]);
 
       if (isOpen) {
@@ -52,12 +63,14 @@ const Chatbox = () => {
       } else {
         fetchNotifMess();
       }
-    });
+    };
+
+    s.on("nhan_tin_nhan_admin", messageListener);
 
     return () => {
-      s.off("nhan_tin_nhan_admin");
+      s.off("nhan_tin_nhan_admin", messageListener);
     };
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -67,7 +80,7 @@ const Chatbox = () => {
 
   // Gửi tin nhắn
   const handleSend = async () => {
-    if (input.trim() === "") return;
+    if (input.trim() === "" || !socket || !user) return;
 
     try {
       const message = {
@@ -85,6 +98,10 @@ const Chatbox = () => {
     }
   };
   const handleOpen = async () => {
+    if (!user) {
+      alert("Vui lòng đăng nhập để sử dụng tính năng nhắn tin");
+      return;
+    }
     try {
       setIsOpen(true);
       await axiosInstance.get("/tin-nhan/doc-tin-nhan");
@@ -95,10 +112,7 @@ const Chatbox = () => {
 
   useEffect(() => {
     if (!user) {
-      console.log("đã chạy");
-      setMessages([]);
-      setNumberMess(0);
-      setSocket(null);
+      setIsOpen(false);
     }
   }, [user]);
   return (
