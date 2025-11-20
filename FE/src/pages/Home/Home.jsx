@@ -13,6 +13,7 @@ import { useNavigate } from "react-router";
 import { Helmet } from "react-helmet";
 import banner2 from "../../assets/image1.jpg";
 import banner3 from "../../assets/image.jpg";
+import { getPrimaryImage } from "../../utils/imageUtils";
 const slideUpVariants = {
   hidden: { opacity: 0, y: 50 },
   visible: { opacity: 1, y: 0, transition: { duration: 1.2, ease: "easeOut" } },
@@ -241,7 +242,9 @@ function Homepage() {
                   </div>
                   <span className="text-yellow-500 text-lg">★★★★★</span>
                   <img
-                    src={item.phong_info.anh_phong}
+                    src={
+                      getPrimaryImage(item.phong_info.anh_phong) || banner2
+                    }
                     alt=""
                     className="mt-4 w-[300px] h-[180px] object-cover"
                   />

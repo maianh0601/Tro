@@ -5,6 +5,10 @@ import HopDongModel from "../models/HopDongModel";
 import yeuthichModel from "../models/YeuThichModel";
 import DanhGiaModel from "../models/DanhGiaModel";
 import Electricity from "../models/Electricity";
+import {
+  normalizeImageList,
+  syncRoomImages,
+} from "../utils/roomImageHelper";
 
 // User đăng ký làm chủ trọ
 export const registerLandlord = async (req: any, res: Response) => {
@@ -229,13 +233,21 @@ export const createLandlordRoom = async (req: any, res: Response) => {
       return res.status(403).json({ message: "Bạn không phải là chủ trọ" });
     }
 
+    const { anh_phong: rawImages, ...roomPayload } = req.body;
+    const imageList = normalizeImageList(rawImages);
+
     const roomData = {
-      ...req.body,
+      ...roomPayload,
       id_chu_tro: user._id.toString(),
+      anh_phong: imageList[0] || rawImages,
     };
 
     const newRoom = new PhongTroModel(roomData);
     await newRoom.save();
+
+    if (imageList.length) {
+      await syncRoomImages(roomData.ma_phong, imageList);
+    }
 
     return res.status(201).json({
       message: "Tạo phòng thành công",
@@ -266,8 +278,23 @@ export const updateLandlordRoom = async (req: any, res: Response) => {
       return res.status(403).json({ message: "Bạn không có quyền chỉnh sửa phòng này" });
     }
 
-    Object.assign(room, req.body);
+    const { anh_phong: rawImages, ...updatePayload } = req.body;
+    const hasImagePayload = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "anh_phong"
+    );
+    const imageList = hasImagePayload ? normalizeImageList(rawImages) : [];
+
+    if (hasImagePayload) {
+      updatePayload.anh_phong = imageList[0] || "";
+    }
+
+    Object.assign(room, updatePayload);
     await room.save();
+
+    if (hasImagePayload) {
+      await syncRoomImages(ma_phong, imageList);
+    }
 
     return res.status(200).json({
       message: "Cập nhật phòng thành công",

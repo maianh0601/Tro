@@ -3,6 +3,7 @@ import test from "../assets/test.png";
 import { FaArrowsAlt, FaUserFriends } from "react-icons/fa";
 import { useNavigate } from "react-router";
 import { formatTienPhong } from "../hook/useMasking";
+import { getPrimaryImage } from "../utils/imageUtils";
 function CardRoom({
   id,
   price,
@@ -24,6 +25,8 @@ function CardRoom({
     }
   };
 
+  const displayImg = getPrimaryImage(img) || test;
+
   return (
     <div
       className="w-full md:max-w-[300px]  min-h-[430px] flex flex-col justify-between shadow-xl  bg-white p-4 rounded-lg cursor-pointer transition-transform duration-300 hover:scale-105"
@@ -31,7 +34,7 @@ function CardRoom({
     >
       <div className="w-full min-h-[200px] md:h-[200px] flex items-center justify-center">
         <img
-          src={img || test}
+          src={displayImg}
           alt="room"
           className="w-full h-full object-cover rounded-md"
         />

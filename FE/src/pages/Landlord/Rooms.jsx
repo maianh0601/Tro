@@ -3,6 +3,7 @@ import { axiosInstance } from "../../../Axios";
 import { useDanhMuc } from "../../Context/DanhMucContext";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { getPrimaryImage } from "../../utils/imageUtils";
 
 function Rooms() {
   const [rooms, setRooms] = useState([]);
@@ -211,7 +212,11 @@ function Rooms() {
           {rooms.map((room) => (
             <div key={room._id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
               {room.anh_phong && (
-                <img src={room.anh_phong} alt={room.ten_phong_tro} className="w-full h-48 object-cover" />
+                <img
+                  src={getPrimaryImage(room.anh_phong)}
+                  alt={room.ten_phong_tro}
+                  className="w-full h-48 object-cover"
+                />
               )}
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">

@@ -1,19 +1,42 @@
 import { Request, Response } from "express";
 import { PhongtroService } from "../services/PhongTroService";
 import PhongTroModel from "../models/PhongTroModel";
+import {
+  normalizeImageList,
+  syncRoomImages,
+} from "../utils/roomImageHelper";
 
 const phongTroService = new PhongtroService();
 
 const storePhongTro = async (req: Request, res: Response) => {
   try {
-    const { ma_phong, ...rest } = req.body;
+    const { ma_phong, anh_phong: rawImages, ...rest } = req.body;
+
     if (await PhongTroModel.findOne({ ma_phong })) {
-      return res.status(400).json({ message: "Mã phòng đã tồn tại, vui lòng chọn mã khác." });
+      return res
+        .status(400)
+        .json({ message: "Mã phòng đã tồn tại, vui lòng chọn mã khác." });
     }
-    const newPhongTro = await phongTroService.createPhongTro({ ma_phong, ...rest });
-    res.status(201).json({ message: "Tạo phòng trọ thành công!", data: newPhongTro });
+
+    const imageList = normalizeImageList(rawImages);
+
+    const newPhongTro = await phongTroService.createPhongTro({
+      ma_phong,
+      ...rest,
+      anh_phong: imageList[0] || rawImages,
+    });
+
+    if (imageList.length) {
+      await syncRoomImages(ma_phong, imageList);
+    }
+
+    res
+      .status(201)
+      .json({ message: "Tạo phòng trọ thành công!", data: newPhongTro });
   } catch (error: any) {
-    res.status(500).json({ message: "Lỗi tạo phòng trọ!", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi tạo phòng trọ!", error: error.message });
   }
 };
 
@@ -21,7 +44,9 @@ const updatePhongTro = async (req: Request, res: Response) => {
   try {
     const { ma_phong } = req.params;
     if (!ma_phong) {
-      return res.status(400).json({ message: "Mã phòng là bắt buộc để cập nhật." });
+      return res
+        .status(400)
+        .json({ message: "Mã phòng là bắt buộc để cập nhật." });
     }
 
     const {
@@ -31,13 +56,35 @@ const updatePhongTro = async (req: Request, res: Response) => {
       updatedAt,
       danh_muc,
       mapDetail,
+      anh_phong: rawImages,
       ...updateData
     } = req.body;
 
-    const updatedPhongTro = await phongTroService.updatePhongTro(ma_phong, updateData);
+    const hasImagePayload = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "anh_phong"
+    );
+    const normalizedImages = hasImagePayload
+      ? normalizeImageList(rawImages)
+      : [];
+
+    if (hasImagePayload) {
+      updateData.anh_phong = normalizedImages[0] || "";
+    }
+
+    const updatedPhongTro = await phongTroService.updatePhongTro(
+      ma_phong,
+      updateData
+    );
 
     if (!updatedPhongTro) {
-      return res.status(404).json({ message: "Không tìm thấy phòng trọ để cập nhật." });
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy phòng trọ để cập nhật." });
+    }
+
+    if (hasImagePayload) {
+      await syncRoomImages(ma_phong, normalizedImages);
     }
 
     res.status(200).json({
@@ -45,7 +92,9 @@ const updatePhongTro = async (req: Request, res: Response) => {
       data: updatedPhongTro,
     });
   } catch (error: any) {
-    res.status(500).json({ message: "Lỗi khi cập nhật phòng trọ.", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi cập nhật phòng trọ.", error: error.message });
   }
 };
 

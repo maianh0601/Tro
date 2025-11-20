@@ -13,6 +13,7 @@ import { useParams } from "react-router";
 import { axiosInstance } from "../../../Axios";
 import { CiHeart } from "react-icons/ci";
 import { MdDeviceHub, MdLocalPolice } from "react-icons/md";
+import { FiMail, FiMessageSquare, FiPhone } from "react-icons/fi";
 import ProductShowcase from "../../component/ProductShowcase";
 import MapDetail from "../../component/RoomDetailsComponent/MapDetail";
 import { useSelector } from "react-redux";
@@ -38,10 +39,11 @@ function RoomDetails() {
   const [anh, setAnh] = useState([]);
   const [toado, setToado] = useState(null);
   const [yeuthich, setYeuthich] = useState(false);
-  const [checkCoc, setCheckCoc] = useState(false);
+  const [landlordInfo, setLandlordInfo] = useState(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isFetchingLandlord, setIsFetchingLandlord] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [thietbi, setThietbi] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   const statusMapping = {
     1: { text: "Còn trống", color: "green" },
@@ -100,21 +102,49 @@ function RoomDetails() {
     setYeuthich(favourite.data.isFavourite);
   };
 
-  const fetchCheck = async () => {
-    const res = await axiosInstance.get(`/phongTro/checkCoc/${user._id}`);
-    setCheckCoc(res.data.data);
+  const fetchLandlordInfo = async (ownerId) => {
+    if (!ownerId) {
+      setLandlordInfo(null);
+      return;
+    }
+    try {
+      setIsFetchingLandlord(true);
+      const res = await axiosInstance.get(`/user/Detail/${ownerId}`);
+      setLandlordInfo(res.data?.data || null);
+    } catch (error) {
+      console.log("error", error);
+      setLandlordInfo(null);
+    } finally {
+      setIsFetchingLandlord(false);
+    }
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await axiosInstance.post(`/phongTro/detail/${id}`);
-        setData(res.data.data);
-        setAnh(res.data.data.anh);
-        setThietbi(res.data.data?.thietBi);
-        const result = res.data.data.mapDetail;
+        const roomData = res.data.data;
+        setData(roomData);
+
+        const galleryImages =
+          (roomData?.anh || [])
+            .map((item) => item?.image_url)
+            .filter(Boolean) || [];
+
+        if (!galleryImages.length && roomData?.anh_phong) {
+          galleryImages.push(
+            ...roomData.anh_phong
+              .split(",")
+              .map((url) => url.trim())
+              .filter(Boolean)
+          );
+        }
+
+        setAnh(galleryImages);
+        setThietbi(roomData?.thietBi);
+        const result = roomData.mapDetail;
         setToado([result.latitude, result.longitude]);
-        const status = res.data.data.trang_thai;
+        const status = roomData.trang_thai;
         const statusInfo = statusMapping[status] || {
           text: "Trạng thái không xác định",
           color: "black",
@@ -125,6 +155,7 @@ function RoomDetails() {
         setRoomSame(filteredProducts);
         setTrangthai(statusInfo.text);
         setStatusColor(statusInfo.color);
+        fetchLandlordInfo(roomData?.id_chu_tro);
       } catch (error) {
         console.log("error", error);
       }
@@ -133,23 +164,31 @@ function RoomDetails() {
     fetchData();
     if (user) {
       fetchYeuthich();
-      fetchCheck();
     }
   }, [id, user]);
 
-  const handlePile = async (e) => {
-    if (!user) return alert("Vui lòng đăng nhập,đăng ký để được đặt cọc");
-    try {
-      setIsLoading(true);
-      await axiosInstance.post("/hoadon/Create", {
-        ma_phong: e,
-      });
-      toast.success("Đã gửi hợp đồng đặt cọc hãy kiểm tra email của bạn");
-    } catch (error) {
-      toast.error(error.response.data.message);
-    } finally {
-      setIsLoading(false);
+  const handleContactLandlord = () => {
+    if (!user) return alert("Vui lòng đăng nhập để liên hệ với chủ trọ");
+    if (!landlordInfo) {
+      toast.info("Đang tải thông tin chủ trọ, vui lòng thử lại sau!");
+      return;
     }
+    setIsContactModalOpen(true);
+  };
+
+  const handleSms = () => {
+    if (!landlordInfo?.so_dien_thoai) return;
+    window.location.href = `sms:${landlordInfo.so_dien_thoai}`;
+  };
+
+  const handleCall = () => {
+    if (!landlordInfo?.so_dien_thoai) return;
+    window.location.href = `tel:${landlordInfo.so_dien_thoai}`;
+  };
+
+  const handleEmail = () => {
+    if (!landlordInfo?.email) return;
+    window.location.href = `mailto:${landlordInfo.email}`;
   };
 
   const handleHeart = async (idUser, maphong) => {
@@ -185,7 +224,8 @@ function RoomDetails() {
     }
   };
   return (
-    <div className="w-full">
+    <>
+      <div className="w-full">
       <Helmet>
         <title>Chi tiết phòng trọ</title>
         <meta
@@ -218,18 +258,18 @@ function RoomDetails() {
               className="flex flex-col lg:flex-row gap-[26px]"
             >
               <img
-                src={anh[0]?.image_url}
+                src={anh[0] || anh3}
                 alt=""
                 className="w-[500px] md:w-full lg:w-[500px] xl:w-[1072px] h-auto lg:h-[446px] object-cover"
               />
               <div className="flex lg:flex-col gap-5">
                 <img
-                  src={anh[1]?.image_url}
+                  src={anh[1] || anh[0] || anh3}
                   alt=""
                   className="w-[160px] md:w-[420px] lg:w-[523px] h-auto lg:h-[215px] object-cover"
                 />
                 <img
-                  src={anh3}
+                  src={anh[2] || anh3}
                   alt=""
                   className="w-[210px] md:w-[420px] lg:w-[523px] h-auto lg:h-[215px] "
                 />
@@ -323,18 +363,28 @@ function RoomDetails() {
                     </button>
                   )}
 
-                  {!checkCoc ? (
-                    <button
-                      className="bg-[#23284C] font-medium py-3 px-8 text-white rounded-md"
-                      onClick={() => handlePile(id)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Đang xử lý..." : "Đặt cọc"}
-                    </button>
-                  ) : (
-                    <div></div>
-                  )}
+                  <button
+                    className="bg-[#23284C] font-medium py-3 px-8 text-white rounded-md"
+                    onClick={handleContactLandlord}
+                    disabled={isFetchingLandlord}
+                  >
+                    {isFetchingLandlord
+                      ? "Đang tải thông tin..."
+                      : "Nhắn tin với chủ trọ"}
+                  </button>
                 </div>
+                {landlordInfo && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Chủ trọ:{" "}
+                    <span className="font-semibold">
+                      {landlordInfo.ho_va_ten ||
+                        landlordInfo.username ||
+                        "Đang cập nhật"}
+                    </span>
+                    {landlordInfo?.so_dien_thoai &&
+                      ` • ${landlordInfo.so_dien_thoai}`}
+                  </p>
+                )}
               </div>
             </motion.section>
 
@@ -464,7 +514,77 @@ function RoomDetails() {
       ) : (
         <div>Error</div>
       )}
-    </div>
+      </div>
+      {isContactModalOpen && landlordInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-center">
+              <h3 className="text-2xl font-semibold text-[#23274A]">
+                Liên hệ chủ trọ
+              </h3>
+              <button
+                onClick={() => setIsContactModalOpen(false)}
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+              <p className="text-lg font-medium">
+                {landlordInfo.ho_va_ten ||
+                  landlordInfo.username ||
+                  "Chủ trọ"}
+              </p>
+              {landlordInfo?.so_dien_thoai && (
+                <p className="text-gray-700">
+                  Số điện thoại:{" "}
+                  <span className="font-semibold">
+                    {landlordInfo.so_dien_thoai}
+                  </span>
+                </p>
+              )}
+              <p className="text-gray-700">
+                Email:{" "}
+                <span className="font-semibold">{landlordInfo.email}</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {landlordInfo?.so_dien_thoai && (
+                <>
+                  <button
+                    onClick={handleSms}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
+                  >
+                    <FiMessageSquare size={18} />
+                    Nhắn tin
+                  </button>
+                  <button
+                    onClick={handleCall}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
+                  >
+                    <FiPhone size={18} />
+                    Gọi điện
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleEmail}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
+              >
+                <FiMail size={18} />
+                Gửi email
+              </button>
+            </div>
+            <button
+              onClick={() => setIsContactModalOpen(false)}
+              className="w-full py-3 rounded-xl bg-[#23284C] text-white font-medium hover:bg-[#2c346b] transition"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
