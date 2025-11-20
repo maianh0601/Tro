@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "../../../Axios";
 import { useDanhMuc } from "../../Context/DanhMucContext";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { getPrimaryImage } from "../../utils/imageUtils";
 
 function Rooms() {
@@ -12,13 +11,11 @@ function Rooms() {
   const [modalType, setModalType] = useState("create");
   const [selectedRoom, setSelectedRoom] = useState(null);
   const { danhMuc } = useDanhMuc();
-  const [maps, setMaps] = useState([]);
   const [images, setImages] = useState([]);
   const [hienthiAnh, setHienthiAnh] = useState([]);
   
   const [roomData, setRoomData] = useState({
     ma_phong: "",
-    ma_map: "",
     ma_danh_muc: "",
     ten_phong_tro: "",
     mo_ta: "",
@@ -31,7 +28,6 @@ function Rooms() {
 
   useEffect(() => {
     fetchRooms();
-    fetchMaps();
   }, []);
 
   const fetchRooms = async () => {
@@ -45,14 +41,6 @@ function Rooms() {
     }
   };
 
-  const fetchMaps = async () => {
-    try {
-      const { data } = await axiosInstance.get("/map/get");
-      setMaps(data.data || []);
-    } catch (error) {
-      console.error("Lỗi tải maps:", error);
-    }
-  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -68,33 +56,26 @@ function Rooms() {
   };
 
   const upload = async (files) => {
-    const API_URL = "https://api.cloudinary.com/v1_1/dzncn1q3e";
-    const urls = [];
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
 
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("upload_preset", "phongtro");
-      formData.append("file", file);
-
-      const resourceType = file.type.includes("video") ? "video" : "image";
-      try {
-        const response = await axios.post(
-          `${API_URL}/${resourceType}/upload`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        urls.push(response.data.secure_url);
-      } catch (error) {
-        console.error(`Lỗi upload ${resourceType}:`, error);
-      }
+    try {
+      const response = await axiosInstance.post("/landlord/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data.urls || [];
+    } catch (error) {
+      console.error("Lỗi upload:", error);
+      toast.error("Lỗi khi upload ảnh");
+      return [];
     }
-    return urls;
   };
 
   const resetForm = () => {
     setRoomData({
       ma_phong: "",
-      ma_map: "",
       ma_danh_muc: "",
       ten_phong_tro: "",
       mo_ta: "",
@@ -128,11 +109,16 @@ function Rooms() {
         urlsImg = await upload(images);
       }
 
+      // URL từ backend đã là full URL
+      const existingUrls = modalType === "edit" 
+        ? hienthiAnh.filter(url => !url.startsWith('blob:'))
+        : [];
+
       const dataToSend = {
         ...roomData,
         anh_phong: modalType === "create" 
           ? urlsImg.join(", ")
-          : [...hienthiAnh.filter(url => !url.startsWith('blob:')), ...urlsImg].join(", "),
+          : [...existingUrls, ...urlsImg].join(", "),
         gia_tien: Number(roomData.gia_tien),
         trang_thai: Number(roomData.trang_thai),
         so_luong_nguoi: Number(roomData.so_luong_nguoi),
@@ -365,22 +351,6 @@ function Rooms() {
                   {danhMuc.map((dm) => (
                     <option key={dm.ma_danh_muc} value={dm.ma_danh_muc}>
                       {dm.ten_danh_muc}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Map</label>
-                <select
-                  value={roomData.ma_map}
-                  onChange={(e) => setRoomData({...roomData, ma_map: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">-- Chọn map --</option>
-                  {maps.map((m) => (
-                    <option key={m.ma_map} value={m.ma_map}>
-                      {m.ma_map}
                     </option>
                   ))}
                 </select>

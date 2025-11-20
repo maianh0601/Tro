@@ -23,6 +23,11 @@ import {
   deleteLandlordImage,
 } from "../controllers/landlordImageController";
 import {
+  uploadImage,
+  uploadImages,
+  uploadMultiple,
+} from "../controllers/uploadController";
+import {
   getLandlordSuaChua,
   createLandlordSuaChua,
   updateLandlordSuaChua,
@@ -71,6 +76,9 @@ landlordRouter.get("/images", accessTokenValidatetor, isLandlord, getLandlordIma
 landlordRouter.post("/images/create", accessTokenValidatetor, isLandlord, createLandlordImage);
 landlordRouter.post("/images/update/:id", accessTokenValidatetor, isLandlord, updateLandlordImage);
 landlordRouter.delete("/images/delete/:id", accessTokenValidatetor, isLandlord, deleteLandlordImage);
+
+// Upload routes
+landlordRouter.post("/upload", accessTokenValidatetor, isLandlord, uploadMultiple, uploadImages);
 
 // Sua chua routes
 landlordRouter.get("/suachua", accessTokenValidatetor, isLandlord, getLandlordSuaChua);

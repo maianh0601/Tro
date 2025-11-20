@@ -103,22 +103,7 @@ function RoomDetails() {
     setYeuthich(favourite.data.isFavourite);
   };
 
-  const fetchLandlordInfo = async (ownerId) => {
-    if (!ownerId) {
-      setLandlordInfo(null);
-      return;
-    }
-    try {
-      setIsFetchingLandlord(true);
-      const res = await axiosInstance.get(`/user/Detail/${ownerId}`);
-      setLandlordInfo(res.data?.data || null);
-    } catch (error) {
-      console.log("error", error);
-      setLandlordInfo(null);
-    } finally {
-      setIsFetchingLandlord(false);
-    }
-  };
+  const [ownerId, setOwnerId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -167,7 +152,7 @@ function RoomDetails() {
         setRoomSame(filteredProducts);
         setTrangthai(statusInfo.text);
         setStatusColor(statusInfo.color);
-        fetchLandlordInfo(roomData?.id_chu_tro);
+        setOwnerId(roomData?.id_chu_tro || null);
       } catch (error) {
         console.log("error", error);
         setToado(null);
@@ -178,13 +163,42 @@ function RoomDetails() {
     fetchData();
     if (user) {
       fetchYeuthich();
+    } else {
+      setLandlordInfo(null);
     }
   }, [id, user]);
 
+  useEffect(() => {
+    const shouldFetchLandlord = Boolean(user && ownerId);
+    if (!shouldFetchLandlord) {
+      setLandlordInfo(null);
+      return;
+    }
+
+    const fetchOwner = async () => {
+      try {
+        setIsFetchingLandlord(true);
+        const res = await axiosInstance.get(`/user/Detail/${ownerId}`);
+        setLandlordInfo(res.data?.data || null);
+      } catch (error) {
+        console.log("error", error);
+        setLandlordInfo(null);
+      } finally {
+        setIsFetchingLandlord(false);
+      }
+    };
+
+    fetchOwner();
+  }, [ownerId, user]);
+
   const handleContactLandlord = () => {
     if (!user) return alert("Vui lòng đăng nhập để liên hệ với chủ trọ");
-    if (!landlordInfo) {
+    if (isFetchingLandlord) {
       toast.info("Đang tải thông tin chủ trọ, vui lòng thử lại sau!");
+      return;
+    }
+    if (!landlordInfo) {
+      toast.error("Không thể lấy thông tin chủ trọ lúc này. Vui lòng thử lại sau!");
       return;
     }
     setIsContactModalOpen(true);

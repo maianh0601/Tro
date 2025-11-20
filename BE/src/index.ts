@@ -46,6 +46,9 @@ const app = express();
 const server = createServer(app);
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+// Serve static files from uploads directory
+app.use("/uploads", express.static("uploads"));
 app.use(
   cors({
     origin: [
