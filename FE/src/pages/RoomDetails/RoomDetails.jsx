@@ -38,6 +38,7 @@ function RoomDetails() {
   const [roomSame, setRoomSame] = useState([]);
   const [anh, setAnh] = useState([]);
   const [toado, setToado] = useState(null);
+  const [mapStatus, setMapStatus] = useState("loading");
   const [yeuthich, setYeuthich] = useState(false);
   const [landlordInfo, setLandlordInfo] = useState(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -122,6 +123,7 @@ function RoomDetails() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setMapStatus("loading");
         const res = await axiosInstance.post(`/phongTro/detail/${id}`);
         const roomData = res.data.data;
         setData(roomData);
@@ -149,8 +151,10 @@ function RoomDetails() {
           typeof result.longitude === "number"
         ) {
           setToado([result.latitude, result.longitude]);
+          setMapStatus("ready");
         } else {
           setToado(null);
+          setMapStatus("missing");
         }
         const status = roomData.trang_thai;
         const statusInfo = statusMapping[status] || {
@@ -166,6 +170,8 @@ function RoomDetails() {
         fetchLandlordInfo(roomData?.id_chu_tro);
       } catch (error) {
         console.log("error", error);
+        setToado(null);
+        setMapStatus("missing");
       }
     };
 
@@ -503,7 +509,15 @@ function RoomDetails() {
               <h2 ref={addressRef} className="text-3xl font-semibold mb-4">
                 Địa chỉ
               </h2>
-              {toado ? <MapDetail toado={toado} /> : <p>Đang tải vị trí...</p>}
+              {mapStatus === "ready" ? (
+                <MapDetail toado={toado} />
+              ) : (
+                <p>
+                  {mapStatus === "loading"
+                    ? "Đang tải vị trí..."
+                    : "Không có dữ liệu vị trí"}
+                </p>
+              )}
             </motion.section>
 
             <motion.section
